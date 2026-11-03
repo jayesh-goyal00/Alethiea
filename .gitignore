@@ -24,3 +24,5 @@ test_videos/fake/*
 # Generated forensic evidence reports
 */backend/reports/*.pdf
 backend/reports/*.pdf
+
+*.onnx

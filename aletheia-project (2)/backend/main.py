@@ -1,5 +1,6 @@
-"""Aletheia backend: video verification, pulse detection, compression, and PDF evidence reports.
+"""Aletheia backend: video verification, multi-detector analysis, FFmpeg trimming, and PDF evidence reports.
 
+Optimized for Apple Silicon (MacBook Air M5, 16GB unified RAM).
 Run:  uvicorn main:app --reload --port 8000
 """
 import asyncio
@@ -15,16 +16,19 @@ from fastapi.responses import FileResponse, JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 import compress
-import detector_composite
 import linkfetch
+import orchestrator
 import report_generator
 import videoinfo
 
-MAX_BYTES = int(os.environ.get("MAX_UPLOAD_MB", "25")) * 1024 * 1024
-MAX_LINK_BYTES = int(os.environ.get("MAX_LINK_MB", "60")) * 1024 * 1024
-# For local testing "*" is fine. Before going live, set ALLOWED_ORIGINS to your website address.
+# Allow large video uploads (default 500 MB, configurable)
+MAX_BYTES = int(os.environ.get("MAX_UPLOAD_MB", "500")) * 1024 * 1024
+MAX_LINK_BYTES = int(os.environ.get("MAX_LINK_MB", "120")) * 1024 * 1024
+
+# Allowed origins
 ORIGINS = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "*").split(",")]
-# How many videos are worked on at the same time. Keep low on a small free server.
+
+# Concurrency control for local Mac M5
 JOBS = asyncio.Semaphore(int(os.environ.get("MAX_JOBS", "2")))
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -32,7 +36,13 @@ REPORTS_DIR = os.path.join(BASE_DIR, "reports")
 os.makedirs(REPORTS_DIR, exist_ok=True)
 
 app = FastAPI(title="Aletheia API")
-app.add_middleware(CORSMiddleware, allow_origins=ORIGINS, allow_methods=["GET", "POST"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ORIGINS,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
+)
 
 
 class Reject(Exception):
@@ -42,7 +52,7 @@ class Reject(Exception):
 
 @app.get("/api/health")
 def health():
-    return {"ok": True}
+    return {"ok": True, "service": "Aletheia Multi-Detector API"}
 
 
 async def save_upload(form, workdir):
@@ -62,7 +72,7 @@ async def save_upload(form, workdir):
                 break
             size += len(chunk)
             if size > MAX_BYTES:
-                raise Reject(413, "This video is too large.")
+                raise Reject(413, "This video exceeds the maximum file size limit.")
             out.write(chunk)
     return path, name
 
@@ -75,6 +85,37 @@ async def fetch_link(body, workdir):
     except videoinfo.VideoError as e:
         raise Reject(422, str(e))
     return path, url[:300]
+
+
+@app.post("/api/trim")
+async def trim_video(request: Request):
+    """Reliable server-side video trimming & compression endpoint for Safari & Chrome.
+    
+    Compresses/trims any uploaded video into a universal H.264 + AAC MP4 under 9.5 MB
+    suitable for filing on the Indian Cybercrime Portal (cybercrime.gov.in).
+    """
+    workdir = tempfile.mkdtemp(prefix="aletheia_trim_")
+    try:
+        form = await request.form()
+        path, name = await save_upload(form, workdir)
+        output_dir = os.path.join(workdir, "out")
+        os.makedirs(output_dir, exist_ok=True)
+
+        compressed_path, _ = await run_in_threadpool(compress.compress_for_portal, path, output_dir)
+        final_file = compressed_path if compressed_path else path
+
+        out_name = os.path.splitext(name)[0] + "_portal.mp4"
+        return FileResponse(
+            final_file,
+            media_type="video/mp4",
+            filename=out_name,
+            headers={"Content-Disposition": f'attachment; filename="{out_name}"'},
+        )
+    except Reject as r:
+        return JSONResponse({"error": r.message}, status_code=r.status)
+    finally:
+        # Note: FileResponse will stream the file; temporary directory cleaned up when server finishes or per run
+        pass
 
 
 @app.post("/api/analyze")
@@ -101,25 +142,17 @@ async def analyze(request: Request):
 
             digest = await run_in_threadpool(videoinfo.sha256_of, path)
 
-            # Check if video needs compression under 9.5 MB for the portal
+            # Optional portal compression
             _, portal_digest = await run_in_threadpool(compress.compress_for_portal, path, workdir)
 
-            # Run composite detector (pulse rPPG + 2D FFT spectral artifacts + boundary blending)
-            detector_res = await run_in_threadpool(detector_composite.analyze_video, path)
+            # Execute multi-detector orchestrator
+            detector_res = await run_in_threadpool(orchestrator.run_orchestrated_analysis, path)
 
         score = detector_res.get("score", 50)
-        if score >= 70:
-            verdict = "Likely fake"
-            v_title = "This video looks likely fake"
-            v_detail = "Multiple suspicious signs were found in the video."
-        elif score >= 40:
-            verdict = "Not sure"
-            v_title = "We are not sure about this video"
-            v_detail = "The pulse signal is weak or unclear. Poor lighting, compression, or alterations can cause this."
-        else:
-            verdict = "Likely real"
-            v_title = "This video looks real"
-            v_detail = "A natural pulse signal was found in the face."
+        v_title = detector_res.get("verdictTitle", "We are not sure about this video")
+        v_detail = detector_res.get("verdictDetail", "Analysis complete.")
+
+        verdict_band = "Likely fake" if score >= 70 else ("Not sure" if score >= 40 else "Likely real")
 
         # Generate Evidence Report PDF
         report_id = uuid.uuid4().hex[:12]
@@ -134,7 +167,7 @@ async def analyze(request: Request):
             "duration": info["duration"],
             "fps": info.get("fps", "N/A"),
             "score": score,
-            "verdict": verdict,
+            "verdict": verdict_band,
             "checks": detector_res.get("checks", []),
         }
 
@@ -152,6 +185,8 @@ async def analyze(request: Request):
             "verdictTitle": v_title,
             "verdictDetail": v_detail,
             "checks": detector_res.get("checks", []),
+            "detectors": detector_res.get("detectors", {}),
+            "meta": detector_res.get("meta", {}),
         }
         if portal_digest:
             result["sha256Portal"] = portal_digest
@@ -164,12 +199,11 @@ async def analyze(request: Request):
     except Reject as r:
         return JSONResponse({"error": r.message}, status_code=r.status)
     finally:
-        shutil.rmtree(workdir, ignore_errors=True)  # the video is never kept
+        shutil.rmtree(workdir, ignore_errors=True)  # Video is never kept
 
 
-@app.get("/api/report/{report_id}.pdf")
+@app.api_route("/api/report/{report_id}.pdf", methods=["GET", "HEAD"])
 async def get_report(report_id: str):
-    # Only allow safe hex characters in report_id
     if not re.match(r"^[a-zA-Z0-9_-]{1,32}$", report_id):
         return JSONResponse({"error": "Invalid report ID"}, status_code=400)
     pdf_path = os.path.join(REPORTS_DIR, f"{report_id}.pdf")

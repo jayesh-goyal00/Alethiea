@@ -18,7 +18,14 @@ $('#m-file').onclick=function(){setMode('file')};$('#m-link').onclick=function()
 $('#browse').onclick=function(){$('#file').click()};
 function take(f){
   if(!/\.(mp4|mov|webm)$/i.test(f.name)){picked=null;$('#fname').textContent='';$('#err').textContent='This file type is not supported. Use MP4, MOV or WEBM.';return}
-  picked=f;$('#err').textContent='';$('#fname').textContent=f.name+' ('+(f.size/1e6).toFixed(1)+' MB)'+(f.size>MAX?'. Over 9.6 MB, so it will be trimmed first.':'');
+  picked=f;$('#err').textContent='';$('#fname').textContent=f.name+' ('+(f.size/1e6).toFixed(1)+' MB)';
+  var vp=$('#v-preview');
+  if(vp){
+    if(vp.src){URL.revokeObjectURL(vp.src);vp.src=''}
+    vp.src=URL.createObjectURL(f);
+    vp.load();
+    $('#v-preview-wrap').style.display='block';
+  }
 }
 $('#file').onchange=function(e){if(e.target.files[0])take(e.target.files[0])};
 var d=$('#drop');
@@ -51,12 +58,12 @@ function render(r){
     c.innerHTML=r.checks.map(function(k){return '<div class="card"><div class="sev"'+(k.ok?' style="color:var(--grn)"':'')+'>'+(k.ok?'OK':'PROBLEM')+'</div><h3>'+esc(k.label)+'</h3><p>'+esc(k.text)+'</p></div>'}).join('');
   }else c.hidden=(b!=='tampered');
 }
-function trim(file,onp){
+function browserTrim(file,onp){
   return new Promise(function(resolve,reject){
     var v=document.createElement('video'),url=URL.createObjectURL(file),done=false;
     v.muted=true;v.playsInline=true;v.preload='auto';v.src=url;
     function fail(m){if(done)return;done=true;URL.revokeObjectURL(url);reject(new Error(m))}
-    var NO='This browser cannot trim this video. Use Chrome or Edge, or choose a file under 9.6 MB.';
+    var NO='This browser cannot record streams directly. Please ensure the backend is running for FFmpeg trimming.';
     v.onerror=function(){fail('This browser cannot open this video to trim it. Try an MP4 under 9.6 MB.')};
     v.onloadedmetadata=function(){
       if(!v.captureStream||!window.MediaRecorder||!isFinite(v.duration)||v.duration<=0){fail(NO);return}
@@ -68,15 +75,28 @@ function trim(file,onp){
       rec.onstop=function(){
         if(done)return;done=true;URL.revokeObjectURL(url);
         var b=new Blob(chunks,{type:mime.split(';')[0]});
-        if(b.size>MAX){reject(new Error('Could not trim below 9.6 MB. Use a shorter clip.'));return}
         resolve(new File([b],file.name.replace(/\.[^.]+$/,'')+'_portal.'+ext,{type:mime.split(';')[0]}));
       };
-      v.ontimeupdate=function(){onp(Math.min(99,Math.round(v.currentTime/len*100)));if(v.currentTime>=len&&rec.state==='recording')rec.stop()};
+      v.ontimeupdate=function(){if(onp)onp(Math.min(99,Math.round(v.currentTime/len*100)));if(v.currentTime>=len&&rec.state==='recording')rec.stop()};
       v.onended=function(){if(rec.state==='recording')rec.stop()};
       rec.start(1000);
-      v.play().catch(function(){fail('The browser blocked playback. Press Check This Video again.')});
+      v.play().catch(function(){fail('Playback blocked. Press Check This Video again.')});
     };
   });
+}
+function trim(file,onp){
+  if(onp)onp(15);
+  // Prefer reliable server-side FFmpeg trimming for Chrome & Safari compatibility
+  if(window.AletheiaAPI&&window.AletheiaAPI.trimVideo){
+    if(onp)onp(35);
+    return window.AletheiaAPI.trimVideo(file).then(function(f){
+      if(onp)onp(100);
+      return f;
+    }).catch(function(err){
+      return browserTrim(file,onp);
+    });
+  }
+  return browserTrim(file,onp);
 }
 $('#run').onclick=function(){
   if(busy)return;var input;
@@ -86,17 +106,12 @@ $('#run').onclick=function(){
   var timer=null;
   function stop(){clearInterval(timer);busy=false;$('#run').disabled=false;$('#prog').style.display='none';$('#pbar').style.width='0';$('#stat').textContent=''}
   function analyze(){
-    var ph=['Loading video…','Finding the face…','Reading skin color…','Looking for a pulse…','Working out the score…'],i=0;
+    var ph=['Loading video…','Scanning scene cuts…','Reading skin & pulse…','Checking generative AI…','Working out the score…'],i=0;
     function paint(){$('#pbar').style.width=((i+1)/ph.length*100)+'%';$('#stat').textContent=ph[i]}
     paint();timer=setInterval(function(){if(i<ph.length-1){i++;paint()}},900);
     return AletheiaAPI.analyze(input);
   }
-  var prep=Promise.resolve();
-  if(input.file&&input.file.size>MAX){
-    $('#pbar').style.width='0';$('#stat').textContent='Trimming to 9.6 MB…';
-    prep=trim(input.file,function(p){$('#pbar').style.width=p+'%';$('#stat').textContent='Trimming to 9.6 MB… '+p+'%'}).then(function(f){input.file=f});
-  }
-  prep.then(analyze).then(function(r){stop();render(r);setDl(input.file||null);show('analysis')},
+  analyze().then(function(r){stop();render(r);setDl(input.file||null);show('analysis')},
     function(e){stop();$('#err').textContent='Could not check the video. '+((e&&e.message)||'Please try again.')});
 };
 $('#pdf').onclick=function(){

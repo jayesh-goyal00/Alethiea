@@ -44,6 +44,9 @@
         <input type="file" id="file" accept=".mp4,.mov,.webm,video/mp4,video/quicktime,video/webm" hidden>
         <button class="btn" id="browse">Choose file</button>
         <div class="fname" id="fname"></div>
+        <div id="v-preview-wrap" style="display:none;margin-top:12px;text-align:center;">
+          <video id="v-preview" controls playsinline webkit-playsinline preload="metadata" style="max-width:100%;max-height:220px;border-radius:8px;background:#000;display:inline-block;"></video>
+        </div>
       </div>
     </div>
     <div id="p-link" hidden>

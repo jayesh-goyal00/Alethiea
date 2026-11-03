@@ -15,12 +15,12 @@
     var result = {
       fileName: name, sha256: null, fps: '29.97', duration: '0:42', score: 88,
       checks: [
-        { label: 'Pulse wave', text: 'Unclear or weak pulse pattern.', ok: false },
-        { label: 'Face life signs', text: 'Skin color changes are inconsistent.', ok: false },
-        { label: 'Heart rate signal', text: 'No steady heart rate found.', ok: false }
+        { label: 'Pulse wave', text: 'Unclear or weak pulse pattern.', ok: False },
+        { label: 'Face life signs', text: 'Skin color changes are inconsistent.', ok: False },
+        { label: 'Heart rate signal', text: 'No steady heart rate found.', ok: False }
       ]
     };
-    var wait = new Promise(function (res) { setTimeout(res, 3000); });
+    var wait = new Promise(function (res) { setTimeout(res, 2000); });
     var src = input.original || input.file;
     var hash = (src && window.crypto && crypto.subtle && src.arrayBuffer)
       ? src.arrayBuffer().then(function (b) { return crypto.subtle.digest('SHA-256', b); })
@@ -61,5 +61,31 @@
     });
   }
 
-  window.AletheiaAPI = { analyze: analyze };
+  // POST /api/trim: Server-side FFmpeg trimming for Chrome & Safari compatibility
+  function trimVideo(file) {
+    if (!base) {
+      return Promise.reject(new Error('Backend server is not configured for video trimming.'));
+    }
+    var fd = new FormData();
+    fd.append('video', file);
+    return fetch(base + '/api/trim', {
+      method: 'POST',
+      body: fd
+    }).then(function (r) {
+      if (!r.ok) {
+        return r.json().catch(function () { return {}; }).then(function (b) {
+          throw new Error(b.error || ('Trim failed: server status ' + r.status));
+        });
+      }
+      return r.blob();
+    }).then(function (blob) {
+      var outName = file.name.replace(/\.[^.]+$/, '') + '_portal.mp4';
+      return new File([blob], outName, { type: 'video/mp4' });
+    });
+  }
+
+  window.AletheiaAPI = {
+    analyze: analyze,
+    trimVideo: trimVideo
+  };
 })();
