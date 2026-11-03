@@ -1,0 +1,26 @@
+# Python virtual environments
+.venv/
+*/backend/.venv/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Large media files and test videos
+test_videos/real/*
+test_videos/fake/*
+!test_videos/real/.gitkeep
+!test_videos/fake/.gitkeep
+*.mp4
+*.mov
+*.webm
+*.avi
+*.mkv
+
+# Generated forensic evidence reports
+*/backend/reports/*.pdf
+backend/reports/*.pdf

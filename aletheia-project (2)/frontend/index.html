@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>Aletheia — Video Check & Report Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app">
+<aside>
+  <div class="brand"><div class="logo" aria-hidden="true">A</div><div><b>Aletheia</b><small>Video check &amp; report help</small></div></div>
+  <nav aria-label="Main">
+    <button class="nav" data-go="check"><span>Check Video</span><span class="tag pri">Start</span></button>
+    <button class="nav" data-go="analysis"><span>Analysis Score</span></button>
+    <button class="nav" data-go="report"><span>Report Incident</span><span class="tag">Guide</span></button>
+    <button class="nav" data-go="how"><span>How It Works</span></button>
+    <button class="nav" data-go="privacy"><span>Privacy &amp; Safety</span></button>
+  </nav>
+  <div class="support"><b>Need help?</b><span>Follows NCRP 2024 steps</span><a href="https://cybercrime.gov.in" target="_blank" rel="noopener">cybercrime.gov.in</a></div>
+</aside>
+
+<div class="main">
+<header>
+  <div class="crumb">Aletheia / <b id="crumb">Check Video</b></div>
+  <div class="hr"><a href="tel:1930">Cyber helpline: 1930</a><a href="https://cybercrime.gov.in" target="_blank" rel="noopener">cybercrime.gov.in</a></div>
+</header>
+
+<section class="view" id="v-check">
+  <h1>Check a video for a real pulse</h1>
+  <p class="sub">Real faces show tiny color changes with every heartbeat. Some deepfakes lack this pulse, but dark lighting or video compression can also hide a real pulse.</p>
+  <div class="card">
+    <div class="seg" role="group" aria-label="How to add the video">
+      <button id="m-file" aria-pressed="true">Upload a file</button>
+      <button id="m-link" aria-pressed="false">Paste a link</button>
+    </div>
+    <div id="p-file">
+      <div class="drop" id="drop">
+        <div style="font-weight:700;font-size:17px">Drop your video here</div>
+        <p>MP4, MOV or WEBM, up to 9.6 MB. Larger files are trimmed to 9.6 MB.</p>
+        <input type="file" id="file" accept=".mp4,.mov,.webm,video/mp4,video/quicktime,video/webm" hidden>
+        <button class="btn" id="browse">Choose file</button>
+        <div class="fname" id="fname"></div>
+      </div>
+    </div>
+    <div id="p-link" hidden>
+      <label for="url" class="cap" style="display:block;margin-top:0">Link to the video, from any website</label>
+      <input type="url" id="url" placeholder="https://...">
+    </div>
+    <div class="err" id="err" role="alert"></div>
+    <div class="row" style="margin-top:6px"><button class="btn pri" id="run">Check This Video</button></div>
+    <div class="prog" id="prog"><i id="pbar"></i></div>
+    <div class="stat" id="stat" aria-live="polite"></div>
+  </div>
+  <div class="grid3">
+    <div class="card t1"><h3>Face pulse</h3><p>Tiny blood-flow changes on the forehead and cheeks.</p></div>
+    <div class="card t2"><h3>Heartbeat rhythm</h3><p>A steady beat, between 58 and 110 per minute.</p></div>
+    <div class="card t3"><h3>Skin color shift</h3><p>Slight color changes as blood moves under the skin.</p></div>
+  </div>
+</section>
+
+<section class="view" id="v-analysis">
+  <h1>Your result</h1>
+  <p class="sub">Here is what we found in the video.</p>
+  <div class="card meta">
+    <dl>
+      <div><dt>File</dt><dd id="a-name">incident_clip_oct24_statement.mp4</dd></div>
+      <div class="hash"><dt>SHA-256 fingerprint</dt><dd id="a-hash">9f2c41a7e0b83d5c16fa7b2e4d90c8a31b5e6f07d2a94c18e3b7a05f6d1c82e4</dd></div>
+      <div><dt>Frames per second</dt><dd id="a-fps">29.97</dd></div>
+      <div><dt>Length</dt><dd id="a-dur">0:42</dd></div>
+    </dl>
+    <div class="row"><button class="btn" id="pdf">Download Evidence Report</button><a class="btn" id="a-dl" hidden>Download video (under 9.6 MB)</a></div>
+  </div>
+  <div class="card">
+    <div class="cap" style="margin:0 0 6px">Chance this video is fake</div>
+    <div class="big"><b id="a-score">88%</b> <span id="a-band">likely fake</span></div>
+    <div class="bar" role="img" aria-label="Chance this video is fake: 88 percent, likely fake">
+      <span class="z1"></span><span class="z2"></span><span class="z3"></span>
+      <div class="pin" id="a-pin"><em id="a-pinlabel">88%</em></div>
+    </div>
+    <div class="scale"><div><b style="color:var(--grn)">Likely real</b>0–40%</div><div><b style="color:var(--amb)">Not sure</b>40–70%</div><div><b style="color:var(--red)">Likely fake</b>70–100%</div></div>
+    <div class="verdict"><span id="a-vt">This video is likely fake</span><small id="a-vs">Multiple suspicious signs were found in the video.</small></div>
+  </div>
+  <div class="grid3" id="a-checks">
+    <div class="card"><div class="sev">PROBLEM</div><h3>Pulse wave</h3><p>Unclear or weak pulse pattern.</p></div>
+    <div class="card"><div class="sev">PROBLEM</div><h3>Face life signs</h3><p>Skin color changes are inconsistent.</p></div>
+    <div class="card"><div class="sev">PROBLEM</div><h3>Heart rate signal</h3><p>No steady heart rate found.</p></div>
+  </div>
+  <div class="card bridge"><div><b>Want to report this?</b><div class="cap" style="margin:2px 0 0">Your evidence report is ready to attach. Next, you write a short description of what happened to you.</div></div>
+    <button class="btn pri" data-go="report">Go to reporting guide</button></div>
+</section>
+
+<section class="view" id="v-report">
+  <h1>Report Incident</h1>
+  <p class="sub">Three short steps to file your complaint.</p>
+  <div class="steps" id="steps">
+    <button class="st"><i>1</i>Description &amp; evidence</button>
+    <button class="st"><i>2</i>File on cybercrime.gov.in</button>
+    <button class="st"><i>3</i>Final checklist</button>
+  </div>
+  <div class="card">
+    <div class="pane" id="s1">
+      <h3>Get ready to report</h3>
+      <h4 class="part">Part 1. Tell us what happened</h4>
+      <p>Answer in simple words. We write the description for the portal from your answers. You can edit it and copy it right here, so you do not need to go back to the result page.</p>
+      <div class="cap">What happened?</div>
+      <div class="choice" id="d-sit">
+        <button class="opt" data-i="0" aria-pressed="false"><b>My face or voice is used in a fake video</b><span>I did not make it or allow it.</span></button>
+        <button class="opt" data-i="1" aria-pressed="false"><b>A fake video of someone I know</b><span>A family member, friend or colleague.</span></button>
+        <button class="opt" data-i="2" aria-pressed="false"><b>I am being threatened or blackmailed</b><span>The fake video is used to scare me.</span></button>
+        <button class="opt" data-i="3" aria-pressed="false"><b>It is used to cheat people</b><span>For example, a fake officer or celebrity asking for money.</span></button>
+        <button class="opt" data-i="4" aria-pressed="false"><b>It spreads false claims</b><span>It harms someone's name or creates fear.</span></button>
+      </div>
+      <label class="chk"><input type="checkbox" id="d-money"><span>Someone is asking me for money because of this video</span></label>
+      <div class="note warn" id="d-moneynote" hidden><b>Call 1930 now.</b> If anyone is demanding money, or you have already paid, call the National Cyber Helpline right away. Do not send more money. <a href="tel:1930">Call 1930</a></div>
+      <label for="d-where" class="cap" style="display:block">Where and when did you see it? (optional)</label>
+      <input type="text" id="d-where" maxlength="120" placeholder="For example: Instagram, account name, 24 Oct 2026">
+      <label for="d-own" class="cap" style="display:block">What happened to you? Write in your own words. (optional, but it makes your report stronger)</label>
+      <textarea id="d-own" rows="3" maxlength="250" style="margin-top:0" placeholder="For example: Someone made a video that looks like me and sent it to my relatives. They are now asking me to pay to delete it."></textarea>
+      <div class="cap" style="margin-bottom:0"><b style="color:var(--tx)">Your description for the portal</b>. Read it and change anything that is not right.</div>
+      <textarea id="desc" maxlength="500" rows="7" aria-label="Description for the portal" placeholder="Choose what happened above. Your description will appear here."></textarea>
+      <div class="row" style="justify-content:space-between;margin-top:10px"><span class="cap" id="d-cnt" style="margin:0"></span><span class="row"><span class="ok" id="d-msg" style="margin:0"></span><button class="btn" id="d-reset" hidden>Reset to my answers</button><button class="btn pri" id="d-copy">Copy description</button></span></div>
+      <h4 class="part" style="margin-top:26px">Part 2. Add your video</h4>
+      <p>What do you have?</p>
+      <div class="choice">
+        <button class="opt" id="o-link" aria-pressed="true"><b>I have a link</b><span>The video is online.</span></button>
+        <button class="opt" id="o-file" aria-pressed="false"><b>I have a video file</b><span>It is saved on my device.</span></button>
+      </div>
+      <div id="r-link">
+        <label for="r-url" class="cap" style="display:block;margin-top:0">Video link (checking is optional)</label>
+        <div class="row"><input type="url" id="r-url" style="flex:1;min-width:200px" placeholder="https://..."><button class="btn" id="verify">Check link</button></div>
+        <div class="cap" style="margin:6px 0 0">You can skip the check and go to the next step.</div>
+        <div class="ok" id="r-ok"></div><div class="err" id="r-err"></div>
+      </div>
+      <div id="r-file" hidden>
+        <p class="cap" style="margin-top:0">The portal does not accept files over 10 MB. If your video is bigger than 9.6 MB, we trim it for you. Keep your original file safe.</p>
+        <input type="file" id="r-fin" accept=".mp4,.mov,.webm,video/mp4,video/quicktime,video/webm" hidden>
+        <div class="row"><button class="btn" id="r-fbrowse">Choose video</button></div>
+        <div class="fname" id="r-fname"></div>
+        <div class="prog" id="r-prog"><i id="r-pbar"></i></div>
+        <div class="stat" id="r-stat" aria-live="polite"></div><div class="err" id="r-ferr"></div>
+        <div class="row"><a class="btn pri" id="r-dl" hidden>Download video for the portal</a></div>
+      </div>
+    </div>
+    <div class="pane" id="s2">
+      <h3>File on cybercrime.gov.in</h3>
+      <ol class="proc">
+        <li><div><b>Open the cybercrime website</b><span>Go to <a class="hl" href="https://cybercrime.gov.in" target="_blank" rel="noopener">cybercrime.gov.in</a> (opens in a new tab). Type the address yourself instead of using a search result, so you do not land on a fake site.</span></div></li>
+        <li><div><b>Go to Suspect Data</b><span>In the top menu, open “Suspect Data”. Then click “Report Suspect to I4C”.</span>
+          <figure class="shot"><img src="images/step-2.jpg" alt="Suspect Data menu with Report Suspect to I4C highlighted" onerror="this.parentNode.classList.add('empty')"></figure></div></li>
+        <li><div><b>Open Report Suspect</b><span>The “Report Suspect” page opens. Choose your “State of Incident” first.</span>
+          <figure class="shot"><img src="images/step-3.jpg" alt="Report Suspect page" onerror="this.parentNode.classList.add('empty')"></figure></div></li>
+        <li><div><b>Choose Deepfake</b><span>Under “What do you want to report?”, click “Deepfake”.</span>
+          <figure class="shot"><img src="images/step-4.jpg" alt="Deepfake option highlighted" onerror="this.parentNode.classList.add('empty')"></figure></div></li>
+        <li><div><b>Add your files and paste your description</b><span>Pick the social media platform and the content type. Choose “URL” to paste a link, or “File” to upload your files, such as the Aletheia evidence report and your video (the portal accepts files up to 10 MB). Paste the description you wrote in step 1 (100 to 500 characters), enter the captcha, then submit.</span>
+          <figure class="shot"><img src="images/step-5.jpg" alt="Deepfake form fields highlighted" onerror="this.parentNode.classList.add('empty')"></figure></div></li>
+      </ol>
+      <div class="row" style="margin-top:14px"><button class="btn" id="r-copy">Copy my description</button><span class="ok" id="r-copied" style="margin:0"></span></div>
+      <div class="note">Report Suspect is a quick report to I4C. If you were harmed or lost money, also file a full complaint under “Report Cyber Crime”. If anyone is demanding money, call 1930 first.</div>
+    </div>
+    <div class="pane" id="s3">
+      <h3>Final checklist</h3>
+      <div class="cap" id="cnt">0 of 4 done</div>
+      <label class="chk"><input type="checkbox"><span>Original video or link saved</span></label>
+      <label class="chk"><input type="checkbox"><span>Evidence report (PDF) downloaded</span></label>
+      <label class="chk"><input type="checkbox"><span>Screenshots taken of the post, account name and date</span></label>
+      <label class="chk"><input type="checkbox"><span>Description ready to paste (100 to 500 characters)</span></label>
+      <div class="help">
+        <div class="card" style="background:var(--bg)"><div class="cap" style="margin:0">National Cyber Helpline</div><div class="num">1930</div><p style="margin-top:4px"><b style="color:var(--tx)">If any money is being demanded</b>, or you have already paid, call this number right away.</p><a class="btn pri" href="tel:1930" style="margin-top:8px">Call 1930</a></div>
+        <div class="card" style="background:var(--bg)"><div class="cap" style="margin:0">Emergency (all India)</div><div class="num">112</div><a class="btn pri" href="tel:112" style="margin-top:8px;background:var(--red);border-color:var(--red)">Call 112</a></div>
+      </div>
+      <a class="btn pri" href="https://cybercrime.gov.in" target="_blank" rel="noopener">Open cybercrime.gov.in</a>
+    </div>
+    <div class="nav2"><button class="btn" id="back">Back</button><button class="btn pri" id="next">Next</button></div>
+  </div>
+</section>
+
+<section class="view" id="v-how">
+  <h1>How it works</h1>
+  <p class="sub">Four simple steps. No tech knowledge needed.</p>
+  <div class="card">
+    <ol class="proc">
+      <li><div><b>You add a video</b><span>Upload a file or paste a link.</span></div></li>
+      <li><div><b>We look for a pulse</b><span>Each heartbeat changes your skin color very slightly. A camera can catch this, even though your eyes can't. We check the face for it.</span></div></li>
+      <li><div><b>You get a score</b><span>0–40% means likely real. 40–70% means we are not sure. 70–100% means likely fake. A higher number means a fake is more likely.</span></div></li>
+      <li><div><b>You get an evidence report</b><span>Download it and attach it when you report.</span></div></li>
+    </ol>
+  </div>
+  <div class="card t2" style="margin-top:20px">
+    <h3>What is the evidence report?</h3>
+    <p>A PDF report of your result. You attach it to your complaint as proof of what we checked.</p>
+    <ul class="list">
+      <li><b>File name and fingerprint.</b> The SHA-256 fingerprint is a code made from your file. If the file changes even slightly, the code changes. It shows the video was not altered after the check.</li>
+      <li><b>Video details.</b> Length and frames per second.</li>
+      <li><b>Score and verdict.</b> The chance the video is fake, and what it means.</li>
+      <li><b>Description text.</b> Not in the PDF. You write it in plain words in the first step of Report Incident, then paste it into the portal form.</li>
+      <li><b>Three checks.</b> Pulse wave, face life signs and heart rate signal.</li>
+      <li><b>Date and time</b> of the check.</li>
+    </ul>
+    <div class="note">A high score is a strong warning, not a court ruling. Always keep the original video.</div>
+    <div class="row" style="margin-top:16px"><button class="btn pri" data-go="check">Check a video</button></div>
+  </div>
+</section>
+
+<section class="view" id="v-privacy">
+  <h1>Privacy &amp; Safety</h1>
+  <p class="sub">Your trust and safety are our top priority. Here is how we handle your media.</p>
+  <div class="card">
+    <h3 style="margin-top:0">1. Your videos are never kept</h3>
+    <p>Uploaded video files and link downloads are processed inside an isolated temporary folder on the server. As soon as the analysis is complete, the video is <b>immediately and permanently deleted</b>. We do not store, copy, or keep your videos.</p>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h3 style="margin-top:0">2. Independent initiative</h3>
+    <p><b>Aletheia is an independent aid project</b> created to help citizens in India handle non-consensual deepfakes and cyber harassment. Aletheia is <b>not</b> operated by the Indian Cybercrime Coordination Centre (I4C), the Ministry of Home Affairs, or the police.</p>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h3 style="margin-top:0">3. You control reporting</h3>
+    <p>Aletheia does not submit complaints to the government on your behalf. We provide you with the technical verification (SHA-256 fingerprint, evidence report PDF) and a ready-to-paste incident description so you can safely file on <a href="https://cybercrime.gov.in" target="_blank" rel="noopener" style="color:var(--pri);font-weight:700">cybercrime.gov.in</a> yourself.</p>
+  </div>
+  <div class="card t2" style="margin-top:16px">
+    <h3 style="margin-top:0">4. Emergency Support</h3>
+    <p>If someone is demanding money, blackmailing you, or threatening extortion:</p>
+    <ul class="list" style="margin-top:8px">
+      <li><b>Call 1930 immediately</b> (National Cyber Crime Helpline).</li>
+      <li>Do not send money or engage with the blackmailer.</li>
+      <li>Keep all screenshots, chat messages, and the original video file.</li>
+    </ul>
+    <div class="row" style="margin-top:16px"><button class="btn pri" data-go="check">Check a video</button></div>
+  </div>
+</section>
+</div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
