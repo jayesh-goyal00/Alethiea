@@ -12,12 +12,38 @@ $$('[data-go]').forEach(function(b){b.addEventListener('click',function(){show(b
 window.addEventListener('hashchange',function(){show(location.hash.slice(1))});
 
 var mode='file',picked=null,MAX=9600000;
+function setReady(ready, text){
+  var r=$('#run'),h=$('#ready-hint');
+  if(r)r.classList.toggle('btn-ready',!!ready);
+  if(h){
+    h.style.display=ready?'inline-flex':'none';
+    if(text)h.textContent=text;
+  }
+}
 function setMode(m){mode=m;$('#m-file').setAttribute('aria-pressed',m==='file');$('#m-link').setAttribute('aria-pressed',m==='link');
-  $('#p-file').hidden=m!=='file';$('#p-link').hidden=m!=='link';$('#err').textContent=''}
+  $('#p-file').hidden=m!=='file';$('#p-link').hidden=m!=='link';$('#err').textContent='';
+  if(m==='file')setReady(!!picked,'Video ready to check');
+  else setReady(validUrl($('#url').value.trim()),'Link ready to check');
+}
 $('#m-file').onclick=function(){setMode('file')};$('#m-link').onclick=function(){setMode('link')};
-$('#browse').onclick=function(){$('#file').click()};
+$('#browse').onclick=function(e){e.stopPropagation();$('#file').click()};
+function clearVideo(){
+  picked=null;$('#fname').textContent='';$('#err').textContent='';
+  var vp=$('#v-preview');
+  if(vp&&vp.src){URL.revokeObjectURL(vp.src);vp.src=''}
+  var wrap=$('#v-preview-wrap');
+  if(wrap)wrap.style.display='none';
+  var fi=$('#file');
+  if(fi)fi.value='';
+  setReady(false);
+}
+var clr=$('#clear-file');
+if(clr)clr.onclick=function(e){e.stopPropagation();clearVideo()};
 function take(f){
-  if(!/\.(mp4|mov|webm)$/i.test(f.name)){picked=null;$('#fname').textContent='';$('#err').textContent='This file type is not supported. Use MP4, MOV or WEBM.';return}
+  if(!f)return;
+  if(!/\.(mp4|mov|webm)$/i.test(f.name)&&!(f.type&&f.type.indexOf('video/')===0)){
+    clearVideo();$('#err').textContent='This file type is not supported. Use MP4, MOV or WEBM.';return;
+  }
   picked=f;$('#err').textContent='';$('#fname').textContent=f.name+' ('+(f.size/1e6).toFixed(1)+' MB)';
   var vp=$('#v-preview');
   if(vp){
@@ -26,13 +52,64 @@ function take(f){
     vp.load();
     $('#v-preview-wrap').style.display='block';
   }
+  setReady(true,'Video ready to check');
 }
 $('#file').onchange=function(e){if(e.target.files[0])take(e.target.files[0])};
 var d=$('#drop');
+d.onclick=function(e){
+  if(e.target.id!=='browse'&&e.target.id!=='clear-file'&&e.target.tagName!=='VIDEO'){
+    $('#file').click();
+  }
+};
 ['dragenter','dragover'].forEach(function(t){d.addEventListener(t,function(e){e.preventDefault();d.classList.add('over')})});
 ['dragleave','drop'].forEach(function(t){d.addEventListener(t,function(e){e.preventDefault();d.classList.remove('over')})});
-d.addEventListener('drop',function(e){if(e.dataTransfer.files[0])take(e.dataTransfer.files[0])});
+d.addEventListener('drop',function(e){e.preventDefault();if(e.dataTransfer.files[0])take(e.dataTransfer.files[0])});
 function validUrl(u){try{var x=new URL(u);return /^https?:$/.test(x.protocol)&&x.hostname.indexOf('.')>0}catch(e){return false}}
+$('#url').addEventListener('input',function(){
+  var u=this.value.trim();
+  if(validUrl(u)){$('#err').textContent='';setReady(true,'Link ready to check')}
+  else setReady(false);
+});
+
+// Clipboard Paste Handler (Files & URLs)
+window.addEventListener('paste',function(e){
+  var act=document.activeElement,tag=(act&&act.tagName)||'';
+  if(tag==='TEXTAREA'||(tag==='INPUT'&&act.id!=='url'))return;
+
+  // 1. Files in clipboard
+  var files=e.clipboardData&&e.clipboardData.files;
+  if(files&&files.length>0){
+    for(var i=0;i<files.length;i++){
+      var f=files[i];
+      if(/\.(mp4|mov|webm)$/i.test(f.name)||(f.type&&f.type.indexOf('video/')===0)){
+        e.preventDefault();setMode('file');show('check');take(f);return;
+      }
+    }
+  }
+
+  // 2. Items of kind 'file'
+  var items=e.clipboardData&&e.clipboardData.items;
+  if(items&&items.length>0){
+    for(var j=0;j<items.length;j++){
+      if(items[j].kind==='file'){
+        var file=items[j].getAsFile();
+        if(file&&(/\.(mp4|mov|webm)$/i.test(file.name)||(file.type&&file.type.indexOf('video/')===0))){
+          e.preventDefault();setMode('file');show('check');take(file);return;
+        }
+      }
+    }
+  }
+
+  // 3. Pasted URL
+  var txt=(e.clipboardData&&e.clipboardData.getData('text'))||'';
+  txt=txt.trim();
+  if(validUrl(txt)){
+    if(tag!=='INPUT'||act.id!=='url'){
+      e.preventDefault();setMode('link');show('check');$('#url').value=txt;
+    }
+    $('#err').textContent='';setReady(true,'Link ready to check');
+  }
+});
 var busy=false,lastResult=null;
 function band(s){return s>=70?'tampered':s>=40?'suspicious':'authentic'}
 var TEXT={

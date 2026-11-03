@@ -189,3 +189,4 @@ def analyze_facial_manipulation(video_data: VideoData) -> dict:
         "limitations": limitations,
         "error_details": None,
     }
+

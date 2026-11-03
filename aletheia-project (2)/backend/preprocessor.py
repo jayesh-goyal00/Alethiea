@@ -151,3 +151,4 @@ def preprocess_video(video_path: str, max_sampled_frames: int = 24) -> VideoData
     data.face_stats["face_coverage_ratio"] = round(frames_with_face / total_sampled, 2)
 
     return data
+
